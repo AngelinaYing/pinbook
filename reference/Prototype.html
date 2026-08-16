@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pinbook — turn your Google Maps trip pins into a personal map</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif; background: #f7f5f2; color: #1a1a1a; }
+    body.in-app { height: 100vh; overflow: hidden; }
+    .logo { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: #1a1a1a; flex-shrink: 0; }
+    .logo em { color: #e8520a; font-style: normal; }
+
+    /* ══════════ LANDING ══════════ */
+    #landing.hide { display: none; }
+    .l-nav {
+      display: flex; align-items: center; gap: 20px;
+      padding: 18px 40px; max-width: 1080px; margin: 0 auto;
+    }
+    .l-nav .logo { font-size: 22px; }
+    .l-nav-cta {
+      margin-left: auto; padding: 8px 18px; border-radius: 20px;
+      background: #1a1a1a; color: white; border: none; cursor: pointer;
+      font-size: 13px; font-weight: 600; transition: opacity .15s;
+    }
+    .l-nav-cta:hover { opacity: .85; }
+
+    .hero { max-width: 1080px; margin: 0 auto; padding: 48px 40px 40px; }
+    .hero-eyebrow {
+      font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+      color: #e8520a; margin-bottom: 18px;
+    }
+    .hero-h {
+      font-size: 52px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.05;
+      max-width: 760px;
+    }
+    .hero-h .accent { color: #e8520a; }
+    .hero-sub {
+      font-size: 18px; color: #6b6660; line-height: 1.55; max-width: 620px;
+      margin-top: 22px;
+    }
+    .hero-cta { display: flex; align-items: center; gap: 14px; margin-top: 30px; }
+    .btn-primary {
+      padding: 13px 26px; border-radius: 26px; background: #e8520a; color: white;
+      border: none; cursor: pointer; font-size: 15px; font-weight: 600;
+      transition: transform .12s, box-shadow .12s; box-shadow: 0 4px 16px rgba(232,82,10,.28);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(232,82,10,.34); }
+    .btn-ghost {
+      padding: 13px 22px; border-radius: 26px; background: transparent; color: #1a1a1a;
+      border: 1.5px solid #ddd8d0; cursor: pointer; font-size: 15px; font-weight: 600;
+      text-decoration: none; transition: border-color .12s;
+    }
+    .btn-ghost:hover { border-color: #999; }
+    .hero-note { font-size: 13px; color: #a8a29a; margin-top: 16px; }
+
+    /* how it works */
+    .how { max-width: 1080px; margin: 0 auto; padding: 30px 40px 20px; }
+    .band-label {
+      font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      color: #bbb; margin-bottom: 20px;
+    }
+    .how-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .how-card {
+      background: white; border: 1.5px solid #ece8e2; border-radius: 16px; padding: 22px 22px 24px;
+    }
+    .how-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; border-radius: 50%; background: #faf1eb; color: #e8520a;
+      font-weight: 800; font-size: 14px; margin-bottom: 14px;
+    }
+    .how-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 7px; letter-spacing: -.2px; }
+    .how-card p { font-size: 13.5px; color: #79736c; line-height: 1.5; }
+
+    /* export + upload */
+    .export { max-width: 1080px; margin: 0 auto; padding: 36px 40px 20px; }
+    .export-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: start; }
+    .export h2 { font-size: 24px; font-weight: 800; letter-spacing: -.6px; margin-bottom: 4px; }
+    .export .sub { font-size: 14px; color: #79736c; margin-bottom: 22px; line-height: 1.5; }
+
+    .steps { list-style: none; }
+    .step { display: flex; gap: 13px; padding: 0 0 18px; }
+    .step-n {
+      flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+      border: 1.5px solid #e8520a; color: #e8520a; font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; margin-top: 1px;
+    }
+    .step-b h4 { font-size: 14px; font-weight: 650; margin-bottom: 3px; }
+    .step-b p { font-size: 13px; color: #857f78; line-height: 1.5; }
+    .step-b code { background: #efece7; padding: 1px 6px; border-radius: 5px; font-size: 12.5px; color: #b5410a; }
+
+    /* google "Saved" row mock */
+    .gmock {
+      display: flex; align-items: center; gap: 12px; margin: 10px 0 4px;
+      border: 1px solid #e4e0d9; border-radius: 10px; padding: 12px 14px; background: #fff;
+    }
+    .gmock-ico { font-size: 20px; }
+    .gmock-txt { flex: 1; }
+    .gmock-txt b { display: block; font-size: 13.5px; margin-bottom: 2px; }
+    .gmock-txt span { font-size: 11.5px; color: #9a948c; line-height: 1.4; }
+    .gmock-check {
+      width: 22px; height: 22px; border-radius: 5px; background: #1a73e8; color: white;
+      display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;
+    }
+
+    /* upload dropzone */
+    .drop {
+      border: 2px dashed #d8d2c8; border-radius: 16px; background: #fbfaf8;
+      padding: 40px 24px; text-align: center; cursor: pointer; transition: all .15s;
+    }
+    .drop:hover, .drop.over { border-color: #e8520a; background: #fdf6f1; }
+    .drop-icon {
+      width: 46px; height: 46px; border-radius: 50%; background: #faf1eb; color: #e8520a;
+      display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 14px;
+    }
+    .drop-title { font-size: 15px; font-weight: 650; }
+    .drop-sub { font-size: 13px; color: #9a948c; margin-top: 5px; }
+    .linklike { background: none; border: none; color: #e8520a; font-weight: 600; cursor: pointer; font-size: 13px; padding: 0; }
+    .drop-result { margin-top: 14px; font-size: 13.5px; line-height: 1.5; display: none; }
+    .drop-result.show { display: block; }
+    .drop-result .ok { color: #16794a; font-weight: 600; }
+    .drop-result .hint { color: #857f78; margin-top: 4px; }
+    .fineprint { margin-top: 22px; }
+    .fineprint li { font-size: 12px; color: #a8a29a; line-height: 1.6; list-style: none; padding-left: 16px; position: relative; }
+    .fineprint li::before { content: '·'; position: absolute; left: 4px; color: #e8520a; font-weight: 800; }
+
+    .foot { max-width: 1080px; margin: 0 auto; padding: 30px 40px 60px; color: #b8b2aa; font-size: 12.5px; }
+    .foot .logo { font-size: 15px; display: inline; }
+
+    /* ══════════ APP (map) ══════════ */
+    #app { display: none; }
+    #app.show { display: flex; flex-direction: column; height: 100vh; }
+
+    header.app-header {
+      background: white; border-bottom: 1px solid #ebe8e2; padding: 0 20px; height: 52px;
+      display: flex; align-items: center; gap: 20px; flex-shrink: 0; z-index: 100;
+    }
+    header.app-header .logo { cursor: pointer; }
+    .trip-tabs { display: flex; gap: 4px; }
+    .trip-tab {
+      padding: 5px 14px; border-radius: 20px; border: 1.5px solid #e8e4de; background: white;
+      cursor: pointer; font-size: 13px; font-weight: 500; color: #777; transition: all .15s; white-space: nowrap;
+    }
+    .trip-tab:hover { border-color: #bbb; color: #333; }
+    .trip-tab.active { color: white; border-color: transparent; }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+    .stats { font-size: 12px; color: #aaa; white-space: nowrap; }
+    .share-btn {
+      padding: 6px 16px; border-radius: 20px; background: #1a1a1a; color: white;
+      border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: opacity .15s;
+    }
+    .share-btn:hover { opacity: .85; }
+
+    .main { display: flex; flex: 1; overflow: hidden; }
+    #map { flex: 1; }
+
+    .sidebar { width: 344px; flex-shrink: 0; display: flex; flex-direction: column; background: white; border-left: 1px solid #ebe8e2; overflow: hidden; }
+
+    .search-wrap { padding: 10px 12px 8px; border-bottom: 1px solid #f5f2ec; flex-shrink: 0; }
+    .search-box { position: relative; }
+    .search-box input {
+      width: 100%; padding: 8px 12px 8px 32px; border: 1.5px solid #e8e4de; border-radius: 9px;
+      font-size: 13px; color: #333; background: #fbfaf8; outline: none; transition: border-color .12s;
+    }
+    .search-box input:focus { border-color: #e8520a; background: white; }
+    .search-box .s-ico { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #bbb; font-size: 13px; }
+
+    .filters { padding: 10px 12px; border-bottom: 1px solid #f0ece6; display: flex; gap: 5px; flex-wrap: wrap; flex-shrink: 0; }
+    .filter-chip {
+      padding: 4px 10px; border-radius: 12px; border: 1.5px solid #e8e4de; background: white;
+      cursor: pointer; font-size: 12px; color: #666; transition: all .12s; white-space: nowrap; line-height: 1.4;
+    }
+    .filter-chip:hover { border-color: #bbb; }
+    .filter-chip.active { background: #1a1a1a; color: white; border-color: #1a1a1a; }
+    .chip-count { opacity: .55; font-weight: 600; margin-left: 2px; }
+
+    .place-list { flex: 1; overflow-y: auto; padding: 8px; }
+    .place-list::-webkit-scrollbar { width: 3px; }
+    .place-list::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+    .empty-state { padding: 40px 20px; text-align: center; color: #bbb; font-size: 14px; }
+
+    .place-card { background: white; border: 1.5px solid #f0ece6; border-radius: 10px; padding: 11px 12px; margin-bottom: 6px; cursor: pointer; transition: all .12s; }
+    .place-card:hover { border-color: #ddd; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+    .place-card.highlighted { border-color: #e8520a; box-shadow: 0 2px 12px rgba(232,82,10,.15); }
+    .card-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 5px; }
+    .cat-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; line-height: 1.3; }
+    .card-name { font-size: 13.5px; font-weight: 600; line-height: 1.35; flex: 1; }
+    .trip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .card-note { font-size: 11.5px; color: #999; margin: 0 0 8px 24px; line-height: 1.45; font-style: italic; }
+
+    .card-actions { display: flex; align-items: center; gap: 8px; margin-left: 24px; }
+    .visited-toggle { display: flex; border: 1.5px solid #e8e4de; border-radius: 7px; overflow: hidden; }
+    .v-btn { padding: 4px 9px; font-size: 11px; font-weight: 600; background: white; border: none; cursor: pointer; transition: all .1s; color: #aaa; }
+    .v-btn + .v-btn { border-left: 1.5px solid #e8e4de; }
+    .v-btn.went.on { background: #dcfce7; color: #16a34a; }
+    .v-btn.skip.on { background: #f1f5f9; color: #94a3b8; }
+    .stars { display: flex; gap: 1px; margin-left: auto; }
+    .star { font-size: 15px; cursor: pointer; color: #e8e4de; transition: color .1s; line-height: 1; user-select: none; }
+    .star.on { color: #f59e0b; }
+    .star:hover { color: #fbbf24; }
+
+    /* comment editor (the "memory") */
+    .comment-wrap { margin: 8px 0 0 24px; }
+    .comment-input {
+      width: 100%; border: 1.5px solid #f0ece6; border-radius: 8px; padding: 7px 9px;
+      font-family: inherit; font-size: 11.5px; color: #555; line-height: 1.45; resize: vertical;
+      min-height: 34px; background: #fbfaf8; outline: none; transition: border-color .12s;
+    }
+    .comment-input:focus { border-color: #e8520a; background: white; }
+    .comment-input::placeholder { color: #c4bfb7; font-style: italic; }
+
+    /* taste panel */
+    .taste-panel { border-top: 1px solid #f0ece6; padding: 14px 14px 16px; background: #faf8f5; flex-shrink: 0; }
+    .taste-title { font-size: 10.5px; font-weight: 700; color: #bbb; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 10px; }
+    .taste-empty { font-size: 12px; color: #ccc; }
+    .taste-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+    .taste-lbl { font-size: 12px; color: #666; width: 78px; flex-shrink: 0; }
+    .taste-track { flex: 1; height: 5px; background: #ece9e3; border-radius: 3px; overflow: hidden; }
+    .taste-fill { height: 100%; border-radius: 3px; background: #e8520a; transition: width .4s ease; }
+    .taste-val { font-size: 11px; color: #aaa; width: 26px; text-align: right; }
+
+    /* leaflet tooltip (rating peek beside pin) */
+    .leaflet-tooltip.pin-tip {
+      background: #1a1a1a; color: white; border: none; box-shadow: 0 2px 8px rgba(0,0,0,.25);
+      font-size: 11.5px; font-weight: 600; padding: 4px 8px; border-radius: 6px;
+    }
+    .leaflet-tooltip.pin-tip::before { border-top-color: #1a1a1a; }
+
+    /* share modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: white; border-radius: 16px; padding: 28px; width: 340px; box-shadow: 0 8px 40px rgba(0,0,0,.2); }
+    .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .modal p { font-size: 13px; color: #888; margin-bottom: 20px; line-height: 1.5; }
+    .modal-summary { background: #faf8f5; border-radius: 10px; padding: 14px; margin-bottom: 20px; font-size: 13px; }
+    .modal-summary b { display: block; margin-bottom: 6px; font-size: 14px; }
+    .modal-actions { display: flex; gap: 10px; }
+    .modal-btn { flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s; }
+    .modal-btn.primary { background: #1a1a1a; color: white; }
+    .modal-btn.secondary { background: #f0ece6; color: #555; }
+    .modal-btn:hover { opacity: .85; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════ LANDING ═══════════════════ -->
+<div id="landing">
+  <nav class="l-nav">
+    <div class="logo">Pinbook<em>.</em></div>
+    <button class="l-nav-cta" onclick="enterApp()">See the demo</button>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-eyebrow">For people who plan trips in Google Maps</div>
+    <h1 class="hero-h">You planned the trip in Google Maps.<br><span class="accent">Pinbook remembers it.</span></h1>
+    <p class="hero-sub">When you plan a trip, you drop pins for every restaurant, viewpoint, and bar you might want to hit. Pinbook takes that saved list and turns it into a personal map of where you actually went, what you thought, and what's worth remembering — not a list of links.</p>
+    <div class="hero-cta">
+      <button class="btn-primary" onclick="enterApp()">See the demo →</button>
+      <a class="btn-ghost" href="#get-started">Map your own trip</a>
+    </div>
+    <div class="hero-note">A live map of two real trips — Colombia and Yosemite. No sign-up.</div>
+  </header>
+
+  <section class="how">
+    <div class="band-label">How it works</div>
+    <div class="how-steps">
+      <div class="how-card">
+        <div class="how-num">1</div>
+        <h3>Export your list</h3>
+        <p>Pull the saved list you built while planning your trip out of Google Maps, using Google Takeout.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">2</div>
+        <h3>Upload the file</h3>
+        <p>Drop the CSV into Pinbook. It finds each place on the map and groups them by city for you.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">3</div>
+        <h3>Make it yours</h3>
+        <p>Mark the places you actually visited, rate them, keep your notes on the map — then share it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="get-started" class="export">
+    <div class="export-grid">
+      <div>
+        <h2>Get your data from Google Maps</h2>
+        <p class="sub">Google doesn't let apps read your saved places directly, so you export them yourself. It takes about two minutes.</p>
+        <ul class="steps">
+          <li class="step">
+            <div class="step-n">1</div>
+            <div class="step-b"><h4>Open Google Takeout</h4>
+              <p>Go to <code>takeout.google.com</code>, signed in to the Google account with your saved places.</p></div>
+          </li>
+          <li class="step">
+            <div class="step-n">2</div>
+            <div class="step-b"><h4>Select only "Saved"</h4>
+              <p>Click <b>Deselect all</b>, then scroll down and check <b>Saved</b> — your Google Maps lists. Leave the format as CSV.</p>
+              <div class="gmock">
+                <div class="gmock-ico">🔖</div>
+                <div class="gmock-txt"><b>Saved</b><span>Collections of saved links (images, places, web pages, etc.) from Google Search and Maps.</span></div>
+                <div class="gmock-check">✓</div>
+              </div>
+            </div>
+          </li>
+          <li class="step">
+            <div class="step-n">3</div>
+            <div class="step-b"><h4>Create the export</h4>
+              <p>Click <b>Next step</b>, keep the "email a download link" option, then <b>Create export</b>. It's usually ready in a few minutes.</p></div>
+          </li>
+          <li class="step">
+            <div class="step-n">4</div>
+            <div class="step-b"><h4>Download and unzip</h4>
+              <p>Open the emailed link, download the <code>.zip</code>, and unzip it. Inside a <b>Saved</b> folder you'll find one CSV per list, named after each list.</p></div>
+          </li>
+          <li class="step">
+            <div class="step-n">5</div>
+            <div class="step-b"><h4>Upload the trip you want</h4>
+              <p>Drop the CSV for that trip into Pinbook, on the right. That's it.</p></div>
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="drop" id="drop" onclick="document.getElementById('file').click()">
+          <input type="file" id="file" accept=".csv" hidden>
+          <div class="drop-icon">⬆</div>
+          <div class="drop-title">Drop your Google Takeout CSV here</div>
+          <div class="drop-sub">or <span class="linklike">browse your files</span></div>
+        </div>
+        <div class="drop-result" id="dropResult"></div>
+        <ul class="fineprint">
+          <li>You can only export your own saved lists — sign in to the right Google account.</li>
+          <li>Pinbook reads the CSV file only. It never connects to your Google account.</li>
+          <li>Your export lists each place's name and Google Maps link, but not its coordinates — so Pinbook looks each one up, and you confirm any that don't match.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span class="logo">Pinbook<em>.</em></span> &nbsp;·&nbsp; A personal project. Your file is processed to build your map.
+  </footer>
+</div>
+
+<!-- ═══════════════════ APP ═══════════════════ -->
+<div id="app">
+  <header class="app-header">
+    <div class="logo" onclick="goHome()" title="Back to start">Pinbook<em>.</em></div>
+    <div class="trip-tabs" id="tripTabs"></div>
+    <div class="header-right">
+      <span class="stats" id="stats">Loading…</span>
+      <button class="share-btn" onclick="openShare()">↗ Share Map</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <div id="map"></div>
+    <div class="sidebar">
+      <div class="search-wrap">
+        <div class="search-box">
+          <span class="s-ico">⌕</span>
+          <input id="searchInput" type="text" placeholder="Search places, notes…" autocomplete="off">
+        </div>
+      </div>
+      <div class="filters" id="filters"></div>
+      <div class="place-list" id="placeList"></div>
+      <div class="taste-panel">
+        <div class="taste-title">Taste Profile</div>
+        <div id="tasteContent"><div class="taste-empty">Rate places you visited to build your profile.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Share modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeShare(event)">
+  <div class="modal">
+    <h2>Share your map 🗺️</h2>
+    <p>Show people where you've been, what you loved, and the notes you kept — only visited places are shown.</p>
+    <div class="modal-summary" id="modalSummary"></div>
+    <div class="modal-actions">
+      <button class="modal-btn primary" onclick="alert('Link copied! (prototype)')">Copy link</button>
+      <button class="modal-btn secondary" onclick="closeShare()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════ DATA ══════════════════
+const TRIPS = {
+  colombia2024: { label: "Colombia '24", color: '#e8520a', emoji: '🇨🇴' },
+  colombia2025: { label: "Colombia '25", color: '#7c3aed', emoji: '🇨🇴' },
+  yosemite2023: { label: "Yosemite '23", color: '#16a34a', emoji: '🏕️' },
+};
+const CATS = {
+  food:         { icon: '🍽️', label: 'Food',      color: '#e8520a' },
+  nature:       { icon: '🌿', label: 'Nature',    color: '#16a34a' },
+  culture:      { icon: '🏛️', label: 'Culture',   color: '#7c3aed' },
+  market:       { icon: '🛍️', label: 'Market',    color: '#f59e0b' },
+  nightlife:    { icon: '🎵', label: 'Nightlife', color: '#ec4899' },
+  activity:     { icon: '🚲', label: 'Activity',  color: '#0ea5e9' },
+  stay:         { icon: '🏨', label: 'Stay',      color: '#64748b' },
+  transport:    { icon: '✈️', label: 'Transport', color: '#94a3b8' },
+  neighborhood: { icon: '🏘️', label: 'Area',      color: '#a78bfa' },
+};
+const places = [
+  { id:1,  trip:'colombia2024', name:'Fossetta',                    cat:'food',         lat:40.7282, lng:-73.9942, note:'NYC (pre-trip research)' },
+  { id:2,  trip:'colombia2024', name:'Sarajevo Grill',              cat:'food',         lat:40.7580, lng:-73.9957, note:'NYC (pre-trip research)' },
+  { id:3,  trip:'colombia2024', name:'Jongro BBQ',                  cat:'food',         lat:40.7503, lng:-73.9895, note:'NYC (pre-trip research)' },
+  { id:4,  trip:'colombia2024', name:'Ábaco Libros y Café',         cat:'food',         lat:10.4238, lng:-75.5471, note:'' },
+  { id:5,  trip:'colombia2024', name:'Torre Fuerte',                cat:'culture',      lat:10.4267, lng:-75.5416, note:'' },
+  { id:6,  trip:'colombia2024', name:'Soloio Cafe',                 cat:'food',         lat:10.4228, lng:-75.5478, note:'' },
+  { id:7,  trip:'colombia2024', name:'Cabo San Juan del Guia',      cat:'nature',       lat:11.3244, lng:-74.0294, note:'' },
+  { id:8,  trip:'colombia2024', name:'Tayrona Park Entrance',       cat:'nature',       lat:11.3070, lng:-74.0369, note:'' },
+  { id:9,  trip:'colombia2024', name:'El Totumo',                   cat:'nature',       lat:10.7043, lng:-75.2584, note:'Volcanic mud bath' },
+  { id:10, trip:'colombia2024', name:'Gaelia Beach',                cat:'nature',       lat:10.3800, lng:-75.5100, note:'' },
+  { id:11, trip:'colombia2024', name:'Cartagena Airport (CTG)',     cat:'transport',    lat:10.4424, lng:-75.5132, note:'' },
+  { id:12, trip:'colombia2024', name:'Rosario Islands',             cat:'nature',       lat:10.1628, lng:-75.7731, note:'' },
+  { id:13, trip:'colombia2024', name:'Ciudad Perdida Trek',         cat:'activity',     lat:11.0407, lng:-73.9252, note:'' },
+  { id:14, trip:'colombia2024', name:'Ciudad Perdida',              cat:'culture',      lat:11.0350, lng:-73.9220, note:'Lost City — ancient ruins' },
+  { id:15, trip:'colombia2024', name:'Santa Marta',                 cat:'neighborhood', lat:11.2408, lng:-74.2116, note:'' },
+  { id:16, trip:'colombia2024', name:'Parque Nacional Tayrona',     cat:'nature',       lat:11.3070, lng:-74.0100, note:'' },
+  { id:17, trip:'colombia2024', name:'Barranquilla',                cat:'neighborhood', lat:10.9685, lng:-74.7813, note:'' },
+  { id:18, trip:'colombia2024', name:'Cartagena',                   cat:'neighborhood', lat:10.3910, lng:-75.4794, note:'' },
+  { id:19, trip:'colombia2025', name:'Bogota Bike Tours',           cat:'activity',     lat:4.6097,  lng:-74.0817, note:'' },
+  { id:20, trip:'colombia2025', name:'4.40 Music Hall',             cat:'nightlife',    lat:4.6480,  lng:-74.0540, note:'' },
+  { id:21, trip:'colombia2025', name:'Andino Shopping Mall',        cat:'market',       lat:4.6658,  lng:-74.0528, note:"Catalina's recommendation" },
+  { id:22, trip:'colombia2025', name:'El Goce Pagano',              cat:'nightlife',    lat:4.6480,  lng:-74.0580, note:'Driver-recommended salsa spot 💃' },
+  { id:23, trip:'colombia2025', name:'El Dorado Airport (BOG)',     cat:'transport',    lat:4.7016,  lng:-74.1469, note:'' },
+  { id:24, trip:'colombia2025', name:'Sabaneta',                    cat:'neighborhood', lat:6.1511,  lng:-75.6161, note:'' },
+  { id:25, trip:'colombia2025', name:'Plaza Cisneros',              cat:'culture',      lat:6.2442,  lng:-75.5812, note:'Medellín' },
+  { id:26, trip:'colombia2025', name:'Porton de Provenza',          cat:'food',         lat:6.2076,  lng:-75.5684, note:'El Poblado' },
+  { id:27, trip:'colombia2025', name:'Santafé Mall',                cat:'market',       lat:6.1895,  lng:-75.5784, note:'' },
+  { id:28, trip:'colombia2025', name:'Jose Maria Cordova Airport',  cat:'transport',    lat:6.1645,  lng:-75.4231, note:'' },
+  { id:29, trip:'colombia2025', name:"Restaurante Mondongo's",      cat:'food',         lat:6.2100,  lng:-75.5673, note:'El Poblado' },
+  { id:30, trip:'colombia2025', name:'Medellín Es Sabor-Champi',    cat:'food',         lat:6.2100,  lng:-75.5690, note:'' },
+  { id:31, trip:'colombia2025', name:'Lineal La Frontera Park',     cat:'nature',       lat:6.1870,  lng:-75.5760, note:'Run club' },
+  { id:32, trip:'colombia2025', name:'Salvo Patria',                cat:'food',         lat:6.2494,  lng:-75.5623, note:'' },
+  { id:33, trip:'colombia2025', name:'Crepes & Waffles Las Aguas',  cat:'food',         lat:4.6013,  lng:-74.0702, note:'' },
+  { id:34, trip:'colombia2025', name:'Restaurante Abbiocco',        cat:'food',         lat:6.2085,  lng:-75.5680, note:'Bella strongly recommends ⭐' },
+  { id:35, trip:'colombia2025', name:'Plaza Botero',                cat:'culture',      lat:6.2517,  lng:-75.5636, note:'Medellín' },
+  { id:36, trip:'colombia2025', name:'San Javier',                  cat:'culture',      lat:6.2451,  lng:-75.5989, note:'Remarkable slum-to-park transformation' },
+  { id:37, trip:'colombia2025', name:'Museum of Antioquia',         cat:'culture',      lat:6.2516,  lng:-75.5634, note:'' },
+  { id:38, trip:'colombia2025', name:'Museo Nacional de Colombia',  cat:'culture',      lat:4.6146,  lng:-74.0693, note:'' },
+  { id:39, trip:'colombia2025', name:'MAMBO (Modern Art Museum)',   cat:'culture',      lat:4.6003,  lng:-74.0716, note:'Bogotá' },
+  { id:40, trip:'colombia2025', name:'Museo Quinta de Bolívar',     cat:'culture',      lat:4.6002,  lng:-74.0638, note:"Bolívar's home · Free Wed afternoons" },
+  { id:41, trip:'colombia2025', name:'El Chato',                    cat:'food',         lat:4.6589,  lng:-74.0599, note:'' },
+  { id:42, trip:'colombia2025', name:'Tierra Chapinero',            cat:'food',         lat:4.6477,  lng:-74.0590, note:'' },
+  { id:43, trip:'colombia2025', name:'Parque de la 93',             cat:'neighborhood', lat:4.6760,  lng:-74.0513, note:'' },
+  { id:44, trip:'colombia2025', name:'La Perseverancia Market',     cat:'market',       lat:4.6171,  lng:-74.0617, note:'Food market' },
+  { id:45, trip:'colombia2025', name:'San Victorino',               cat:'market',       lat:4.5988,  lng:-74.0777, note:'Street market' },
+  { id:46, trip:'colombia2025', name:'Museo de Arte Miguel Urrutia',cat:'culture',      lat:4.6013,  lng:-74.0697, note:'' },
+  { id:47, trip:'colombia2025', name:'Café Matuca',                 cat:'food',         lat:4.6070,  lng:-74.0700, note:'' },
+  { id:48, trip:'colombia2025', name:'University of the Andes',     cat:'culture',      lat:4.5996,  lng:-74.0656, note:'Great architecture — downhill walk' },
+  { id:49, trip:'colombia2025', name:'Santuario Ntra Sra del Carmen',cat:'culture',     lat:4.6104,  lng:-74.0676, note:'' },
+  { id:50, trip:'colombia2025', name:'Gold Museum',                 cat:'culture',      lat:4.6019,  lng:-74.0712, note:'' },
+  { id:51, trip:'colombia2025', name:'Santa Fe (neighborhood)',     cat:'neighborhood', lat:4.5994,  lng:-74.0823, note:'⚠️ Unsafe — avoid' },
+  { id:52, trip:'colombia2025', name:'Plaza de Bolívar',            cat:'culture',      lat:4.5981,  lng:-74.0759, note:'' },
+  { id:53, trip:'colombia2025', name:'Usaquén Flea Market',         cat:'market',       lat:4.7025,  lng:-74.0313, note:"Bogotá's best artisan market" },
+  { id:54, trip:'colombia2025', name:'Botero Museum',               cat:'culture',      lat:4.5981,  lng:-74.0755, note:'' },
+  { id:55, trip:'colombia2025', name:'Monserrate',                  cat:'culture',      lat:4.6053,  lng:-74.0567, note:'Go for sunset · Buy tickets early!' },
+  { id:56, trip:'colombia2025', name:'La Candelaria',               cat:'neighborhood', lat:4.5983,  lng:-74.0760, note:'Old town' },
+  { id:57, trip:'colombia2025', name:'Viajero Bogota Hostel & Spa', cat:'stay',         lat:4.6258,  lng:-74.0786, note:'' },
+  { id:58, trip:'colombia2025', name:'Viajero Hostel Medellín',     cat:'stay',         lat:6.2094,  lng:-75.5681, note:'Rooftop bar' },
+  { id:59, trip:'colombia2025', name:'THEATRON',                    cat:'nightlife',    lat:4.6447,  lng:-74.0619, note:"One of South America's biggest clubs" },
+  { id:60, trip:'yosemite2023', name:'Yosemite Falls',              cat:'nature',       lat:37.7654, lng:-119.5960, note:'Round trip 6h · Worth every step' },
+  { id:61, trip:'yosemite2023', name:'South Entrance',              cat:'transport',    lat:37.5098, lng:-119.6463, note:'' },
+  { id:62, trip:'yosemite2023', name:'Airbnb (Koon Hollar)',        cat:'stay',         lat:37.4990, lng:-119.9765, note:'' },
+  { id:63, trip:'yosemite2023', name:'Glacier Point',               cat:'nature',       lat:37.7308, lng:-119.5736, note:'Face-to-face with Half Dome' },
+  { id:64, trip:'yosemite2023', name:'Swinging Bridge Trail',       cat:'nature',       lat:37.7419, lng:-119.5927, note:'' },
+  { id:65, trip:'yosemite2023', name:'Yosemite Valley View',        cat:'nature',       lat:37.7230, lng:-119.6479, note:'Great for sunset' },
+  { id:66, trip:'yosemite2023', name:'El Capitan',                  cat:'nature',       lat:37.7341, lng:-119.6378, note:'' },
+  { id:67, trip:'yosemite2023', name:'Mirror Lake Trail',           cat:'nature',       lat:37.7441, lng:-119.5544, note:'' },
+  { id:68, trip:'yosemite2023', name:'Bridalveil Fall',             cat:'nature',       lat:37.7165, lng:-119.6516, note:'Drive-up viewpoint' },
+  { id:69, trip:'yosemite2023', name:'Tunnel View',                 cat:'nature',       lat:37.7186, lng:-119.6785, note:'Driveable' },
+];
+
+// ══════════════════ STATE ══════════════════
+const state = { trip: 'all', cat: 'all', query: '', activeId: null };
+const ratings = {};
+places.forEach(p => { ratings[p.id] = { visited: null, rating: 0, comment: p.note || '' }; });
+
+function escapeHtml(s){ return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ══════════════════ MAP ══════════════════
+let map, mapInited = false;
+const markers = {};
+
+function initMap() {
+  map = L.map('map', { zoomControl: true }).setView([12, -82], 4);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap · © CARTO', subdomains: 'abcd', maxZoom: 19
+  }).addTo(map);
+  initMarkers();
+}
+
+function makeIcon(p) {
+  const cat = CATS[p.cat] || CATS.food;
+  const r = ratings[p.id];
+  const faded = r.visited === 'skipped';
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+      background:${faded ? '#ccc' : cat.color};border:2.5px solid white;
+      box-shadow:0 2px 8px rgba(0,0,0,${faded ? 0.1 : 0.28});
+      display:flex;align-items:center;justify-content:center;">
+      <span style="transform:rotate(45deg);font-size:12px;line-height:1;">${cat.icon}</span></div>`,
+    iconSize: [28, 28], iconAnchor: [14, 28], popupAnchor: [0, -30],
+  });
+}
+
+function tooltipHtml(p) {
+  const r = ratings[p.id];
+  const stars = (r.visited === 'went' && r.rating > 0)
+    ? ` <span style="color:#fbbf24;">${'★'.repeat(r.rating)}</span>` : '';
+  return `${escapeHtml(p.name)}${stars}`;
+}
+
+function popupHtml(p) {
+  const r = ratings[p.id];
+  const stars = (r.visited === 'went' && r.rating > 0)
+    ? `<div style="font-size:14px;letter-spacing:1px;margin-top:5px;color:#f59e0b;">${'★'.repeat(r.rating)}<span style="color:#e8e4de;">${'★'.repeat(5 - r.rating)}</span></div>`
+    : '';
+  const comment = (r.comment && r.comment.trim())
+    ? `<div style="font-size:11.5px;color:#555;margin-top:6px;line-height:1.45;border-left:2px solid #e8520a;padding-left:8px;">${escapeHtml(r.comment)}</div>`
+    : '';
+  const badge = r.visited === 'went' ? ' · <span style="color:#16a34a;">visited</span>'
+             : r.visited === 'skipped' ? ' · <span style="color:#94a3b8;">skipped</span>' : '';
+  return `<div style="font-family:-apple-system,sans-serif;min-width:150px;max-width:230px;">
+    <div style="font-weight:700;font-size:13px;margin-bottom:2px;">${escapeHtml(p.name)}</div>
+    <div style="font-size:11px;color:#999;">${CATS[p.cat]?.label} · ${TRIPS[p.trip]?.label}${badge}</div>
+    ${stars}${comment}
+  </div>`;
+}
+
+function initMarkers() {
+  places.forEach(p => {
+    const m = L.marker([p.lat, p.lng], { icon: makeIcon(p) })
+      .bindPopup('', { maxWidth: 250 })
+      .bindTooltip(p.name, { direction: 'top', offset: [0, -26], className: 'pin-tip' });
+    m.on('tooltipopen', () => m.setTooltipContent(tooltipHtml(p)));
+    m.on('popupopen',   () => m.setPopupContent(popupHtml(p)));
+    m.on('click', () => {
+      state.activeId = p.id;
+      render();
+      const el = document.getElementById('card-' + p.id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+    m.addTo(map);
+    markers[p.id] = m;
+  });
+}
+
+function fitTrip(trip) {
+  const pts = places.filter(p => trip === 'all' || p.trip === trip).map(p => [p.lat, p.lng]);
+  if (!pts.length) return;
+  if (pts.length === 1) { map.setView(pts[0], 13, { animate: true }); }
+  else { map.fitBounds(pts, { padding: [60, 60], maxZoom: trip === 'all' ? 6 : 12, animate: true }); }
+}
+
+// ══════════════════ FILTER / SEARCH ══════════════════
+function visible() {
+  const q = state.query.trim().toLowerCase();
+  return places.filter(p =>
+    (state.trip === 'all' || p.trip === state.trip) &&
+    (state.cat === 'all' || p.cat === state.cat) &&
+    (!q || p.name.toLowerCase().includes(q) || (p.note || '').toLowerCase().includes(q) || (ratings[p.id].comment || '').toLowerCase().includes(q))
+  );
+}
+function catCounts() {
+  const scope = places.filter(p => state.trip === 'all' || p.trip === state.trip);
+  const c = { all: scope.length };
+  scope.forEach(p => { c[p.cat] = (c[p.cat] || 0) + 1; });
+  return c;
+}
+
+// ══════════════════ RENDER ══════════════════
+function renderTripTabs() {
+  const tabs = [{ key: 'all', label: 'All Trips', color: '#1a1a1a', emoji: '' }]
+    .concat(Object.keys(TRIPS).map(t => ({ key: t, label: TRIPS[t].label, color: TRIPS[t].color, emoji: TRIPS[t].emoji })));
+  document.getElementById('tripTabs').innerHTML = tabs.map(t => {
+    const active = state.trip === t.key;
+    return `<button class="trip-tab ${active ? 'active' : ''}" data-trip="${t.key}"
+      style="${active ? `background:${t.color}` : ''}">${t.emoji ? t.emoji + ' ' : ''}${t.label}</button>`;
+  }).join('');
+}
+function renderFilters() {
+  const counts = catCounts();
+  const cats = Object.keys(CATS).filter(c => counts[c]);
+  const chips = [{ key: 'all', label: 'All', icon: '' }]
+    .concat(cats.map(c => ({ key: c, label: CATS[c].label, icon: CATS[c].icon })));
+  document.getElementById('filters').innerHTML = chips.map(c => {
+    const active = state.cat === c.key;
+    return `<button class="filter-chip ${active ? 'active' : ''}" data-cat="${c.key}">${c.icon ? c.icon + ' ' : ''}${c.label} <span class="chip-count">${counts[c.key] || 0}</span></button>`;
+  }).join('');
+}
+
+function render() {
+  const show = visible();
+  const showIds = new Set(show.map(p => p.id));
+
+  places.forEach(p => {
+    const m = markers[p.id];
+    const inView = showIds.has(p.id);
+    if (inView && !map.hasLayer(m)) m.addTo(map);
+    if (!inView && map.hasLayer(m)) map.removeLayer(m);
+    m.setIcon(makeIcon(p));
+    if (m.isPopupOpen && m.isPopupOpen()) m.setPopupContent(popupHtml(p));
+  });
+
+  const ratedN = Object.values(ratings).filter(r => r.visited !== null).length;
+  document.getElementById('stats').textContent = `${show.length} places · ${ratedN} rated`;
+
+  renderFilters();
+
+  const list = document.getElementById('placeList');
+  if (!show.length) {
+    list.innerHTML = '<div class="empty-state">No places match your search.</div>';
+  } else {
+    list.innerHTML = show.map(p => {
+      const r = ratings[p.id];
+      const active = state.activeId === p.id;
+      const tripColor = TRIPS[p.trip]?.color;
+      const went = r.visited === 'went';
+      const stars = went
+        ? `<div class="stars">${[1,2,3,4,5].map(n =>
+            `<span class="star ${r.rating >= n ? 'on' : ''}" onclick="setRating(event,${p.id},${n})">★</span>`).join('')}</div>`
+        : '';
+      const body = went
+        ? `<div class="comment-wrap">
+             <textarea class="comment-input" rows="2" placeholder="Add a memory from this place…"
+               onclick="event.stopPropagation()" oninput="setComment(${p.id}, this.value)">${escapeHtml(r.comment)}</textarea>
+           </div>`
+        : (p.note ? `<div class="card-note">${escapeHtml(p.note)}</div>` : '');
+      return `
+        <div class="place-card ${active ? 'highlighted' : ''}" id="card-${p.id}" onclick="selectCard(${p.id})">
+          <div class="card-top">
+            <span class="cat-icon">${CATS[p.cat]?.icon || '📍'}</span>
+            <span class="card-name">${escapeHtml(p.name)}</span>
+            <div class="trip-dot" style="background:${tripColor}" title="${TRIPS[p.trip]?.label}"></div>
+          </div>
+          <div class="card-actions" onclick="event.stopPropagation()">
+            <div class="visited-toggle">
+              <button class="v-btn went ${went ? 'on' : ''}" onclick="setVisited(event,${p.id},'went')">✓ Went</button>
+              <button class="v-btn skip ${r.visited === 'skipped' ? 'on' : ''}" onclick="setVisited(event,${p.id},'skipped')">✗ Skipped</button>
+            </div>
+            ${stars}
+          </div>
+          ${body}
+        </div>`;
+    }).join('');
+  }
+  renderTaste();
+}
+
+function selectCard(id) {
+  state.activeId = id;
+  const p = places.find(x => x.id === id);
+  if (p) { map.setView([p.lat, p.lng], 14, { animate: true }); markers[id].openPopup(); }
+  render();
+}
+function setVisited(e, id, val) {
+  e.stopPropagation();
+  ratings[id].visited = ratings[id].visited === val ? null : val;
+  if (ratings[id].visited !== 'went') ratings[id].rating = 0;   // comment is kept
+  render();
+}
+function setRating(e, id, val) {
+  e.stopPropagation();
+  ratings[id].rating = ratings[id].rating === val ? 0 : val;
+  render();
+}
+function setComment(id, val) {
+  ratings[id].comment = val;   // no re-render (keeps textarea focus); refresh popup if open
+  const m = markers[id];
+  if (m && m.isPopupOpen && m.isPopupOpen()) m.setPopupContent(popupHtml(places.find(p => p.id === id)));
+}
+
+function renderTaste() {
+  const el = document.getElementById('tasteContent');
+  const rated = places.filter(p => ratings[p.id].visited === 'went' && ratings[p.id].rating > 0);
+  if (!rated.length) {
+    el.innerHTML = '<div class="taste-empty">Rate places you visited to build your profile.</div>';
+    return;
+  }
+  const bycat = {};
+  rated.forEach(p => {
+    if (!bycat[p.cat]) bycat[p.cat] = { sum: 0, n: 0 };
+    bycat[p.cat].sum += ratings[p.id].rating; bycat[p.cat].n++;
+  });
+  const rows = Object.entries(bycat).map(([cat, d]) => ({ cat, avg: d.sum / d.n })).sort((a, b) => b.avg - a.avg);
+  el.innerHTML = rows.map(r => `
+    <div class="taste-row">
+      <span class="taste-lbl">${CATS[r.cat]?.icon} ${CATS[r.cat]?.label}</span>
+      <div class="taste-track"><div class="taste-fill" style="width:${(r.avg / 5) * 100}%"></div></div>
+      <span class="taste-val">${r.avg.toFixed(1)}★</span>
+    </div>`).join('');
+}
+
+// ══════════════════ LISTENERS (delegated) ══════════════════
+document.getElementById('tripTabs').addEventListener('click', e => {
+  const b = e.target.closest('.trip-tab'); if (!b) return;
+  state.trip = b.dataset.trip; state.cat = 'all'; state.activeId = null;
+  renderTripTabs(); fitTrip(state.trip); render();
+});
+document.getElementById('filters').addEventListener('click', e => {
+  const b = e.target.closest('.filter-chip'); if (!b) return;
+  state.cat = b.dataset.cat; state.activeId = null; render();
+});
+document.getElementById('searchInput').addEventListener('input', e => {
+  state.query = e.target.value; state.activeId = null; render();
+});
+
+// ══════════════════ SHARE ══════════════════
+function openShare() {
+  const went = places.filter(p => ratings[p.id].visited === 'went');
+  const trips = [...new Set(went.map(p => p.trip))].map(t => TRIPS[t]?.label).join(', ') || 'None yet';
+  const fav = (() => {
+    const bycat = {};
+    went.filter(p => ratings[p.id].rating > 0).forEach(p => {
+      if (!bycat[p.cat]) bycat[p.cat] = { sum: 0, n: 0 };
+      bycat[p.cat].sum += ratings[p.id].rating; bycat[p.cat].n++;
+    });
+    const best = Object.entries(bycat).sort((a, b) => (b[1].sum / b[1].n) - (a[1].sum / a[1].n))[0];
+    return best ? `${CATS[best[0]]?.icon} ${CATS[best[0]]?.label}` : '—';
+  })();
+  const notes = went.filter(p => ratings[p.id].comment && ratings[p.id].comment.trim()).length;
+  document.getElementById('modalSummary').innerHTML = `
+    <b>Your snapshot</b>
+    📍 ${went.length} places visited across ${[...new Set(went.map(p => p.trip))].length || 0} trip(s)<br/>
+    🗺️ Trips: ${trips}<br/>
+    ❤️ Top category: ${fav}<br/>
+    📝 Notes kept: ${notes}
+  `;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeShare(e) {
+  if (!e || e.target === document.getElementById('modalOverlay'))
+    document.getElementById('modalOverlay').classList.remove('show');
+}
+
+// ══════════════════ NAV: landing <-> app ══════════════════
+function enterApp() {
+  document.getElementById('landing').classList.add('hide');
+  document.getElementById('app').classList.add('show');
+  document.body.classList.add('in-app');
+  if (!mapInited) { initMap(); mapInited = true; renderTripTabs(); }
+  setTimeout(() => { map.invalidateSize(); fitTrip(state.trip); render(); }, 60);
+}
+function goHome() {
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('landing').classList.remove('hide');
+  document.body.classList.remove('in-app');
+}
+
+// ══════════════════ UPLOAD (prototype: parse + acknowledge) ══════════════════
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('file');
+const dropResult = document.getElementById('dropResult');
+
+['dragover', 'dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+function handleFile(file) {
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    showResult(`<span style="color:#c0392b;">That's not a .csv — export the "Saved" data from Google Takeout and try again.</span>`);
+    return;
+  }
+  Papa.parse(file, {
+    header: true, skipEmptyLines: true,
+    complete: (res) => {
+      const rows = res.data.filter(r => (r.Title || '').trim());
+      showResult(
+        `<span class="ok">Found ${rows.length} saved place${rows.length === 1 ? '' : 's'} in ${escapeHtml(file.name)}.</span>` +
+        `<div class="hint">Live map generation (looking up each place, grouping by city) connects in the full version. For now, <a href="#" onclick="enterApp();return false;" style="color:#e8520a;font-weight:600;">see the demo</a> to preview how your map will look.</div>`
+      );
+    },
+    error: () => showResult(`<span style="color:#c0392b;">Couldn't read that file. Make sure it's the CSV from Google Takeout "Saved".</span>`)
+  });
+}
+function showResult(html) { dropResult.innerHTML = html; dropResult.classList.add('show'); }
+</script>
+</body>
+</html>

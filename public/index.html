@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pinbook — turn your Google Maps trip pins into a personal map</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- ═══════════════════ LANDING ═══════════════════ -->
+<div id="landing">
+  <nav class="l-nav">
+    <div class="logo">Pinbook<em>.</em></div>
+    <button class="l-nav-cta" onclick="enterDemo()">See the demo</button>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-eyebrow">For people who plan trips in Google Maps</div>
+    <h1 class="hero-h">You planned the trip in Google Maps.<br><span class="accent">Pinbook remembers it.</span></h1>
+    <p class="hero-sub">When you plan a trip, you drop pins for every restaurant, viewpoint, and bar you might want to hit. Pinbook takes that saved list and turns it into a personal map of where you actually went, what you thought, and what's worth remembering — not a list of links.</p>
+    <div class="hero-cta">
+      <button class="btn-primary" onclick="enterDemo()">See the demo →</button>
+      <a class="btn-ghost" href="#get-started">Map your own trip</a>
+    </div>
+    <div class="hero-note">A live map of two real trips — Colombia and Yosemite. No sign-up.</div>
+  </header>
+
+  <section class="how">
+    <div class="band-label">How it works</div>
+    <div class="how-steps">
+      <div class="how-card">
+        <div class="how-num">1</div>
+        <h3>Export your list</h3>
+        <p>Pull the saved list you built while planning your trip out of Google Maps, using Google Takeout.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">2</div>
+        <h3>Upload the file</h3>
+        <p>Drop the CSV into Pinbook. It finds each place on the map and groups them by city for you.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">3</div>
+        <h3>Make it yours</h3>
+        <p>Mark the places you actually visited, rate them, keep your notes on the map — then share it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="get-started" class="export">
+    <div class="export-grid">
+      <div>
+        <h2>Get your data from Google Maps</h2>
+        <p class="sub">Google doesn't let apps read your saved places directly, so you export them yourself. It takes about two minutes.</p>
+        <ul class="steps">
+          <li class="step">
+            <div class="step-n">1</div>
+            <div class="step-b"><h4>Open Google Takeout</h4>
+              <p>Go to <code>takeout.google.com</code>, signed in to the Google account with your saved places.</p></div>
+          </li>
+          <li class="step">
+            <div class="step-n">2</div>
+            <div class="step-b"><h4>Select only "Saved"</h4>
+              <p>Click <b>Deselect all</b>, then scroll down and check <b>Saved</b> — your Google Maps lists. Leave the format as CSV.</p>
+              <div class="gmock">
+                <div class="gmock-ico">🔖</div>
+                <div class="gmock-txt"><b>Saved</b><span>Collections of saved links (images, places, web pages, etc.) from Google Search and Maps.</span></div>
+                <div class="gmock-check">✓</div>
+              </div>
+            </div>
+          </li>
+          <li class="step">
+            <div class="step-n">3</div>
+            <div class="step-b"><h4>Create the export</h4>
+              <p>Click <b>Next step</b>, keep the "email a download link" option, then <b>Create export</b>. It's usually ready in a few minutes.</p></div>
+          </li>
+          <li class="step">
+            <div class="step-n">4</div>
+            <div class="step-b"><h4>Download and unzip</h4>
+              <p>Open the emailed link, download the <code>.zip</code>, and unzip it. Inside a <b>Saved</b> folder you'll find one CSV per list, named after each list.</p></div>
+          </li>
+          <li class="step">
+            <div class="step-n">5</div>
+            <div class="step-b"><h4>Upload the trip you want</h4>
+              <p>Drop the CSV for that trip into Pinbook, on the right. That's it.</p></div>
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="drop" id="drop" onclick="document.getElementById('file').click()">
+          <input type="file" id="file" accept=".csv" hidden>
+          <div class="drop-icon">⬆</div>
+          <div class="drop-title" id="dropTitle">Drop your Google Takeout CSV here</div>
+          <div class="drop-sub" id="dropSub">or <span class="linklike">browse your files</span></div>
+        </div>
+        <div class="drop-result" id="dropResult"></div>
+
+        <form class="import-form" id="importForm" onsubmit="return submitImport(event)">
+          <div class="import-field">
+            <label for="tripLabel">Trip name</label>
+            <input type="text" id="tripLabel" placeholder="e.g. Japan Spring '26" required>
+          </div>
+          <div class="import-field">
+            <label for="tripRegion">Region (optional, improves accuracy)</label>
+            <input type="text" id="tripRegion" placeholder="e.g. CO, US, FR — country code" maxlength="2" style="text-transform:uppercase">
+            <div class="hint">Biases the search so "Central Park" doesn't resolve to the wrong country.</div>
+          </div>
+          <button type="submit" class="btn-primary" id="importSubmit" style="width:100%;">Find my places on the map</button>
+        </form>
+
+        <ul class="fineprint">
+          <li>You can only export your own saved lists — sign in to the right Google account.</li>
+          <li>Pinbook reads the CSV file only. It never connects to your Google account.</li>
+          <li>Your export lists each place's name and Google Maps link, but not its coordinates — so Pinbook looks each one up, and you confirm any that don't match.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span class="logo">Pinbook<em>.</em></span> &nbsp;·&nbsp; A personal project. Your file is processed to build your map.
+  </footer>
+</div>
+
+<!-- ═══════════════════ REVIEW SCREEN ═══════════════════ -->
+<div id="review">
+  <div class="review-wrap">
+    <div class="review-head">
+      <h1 id="reviewHeadline">Review your places</h1>
+      <p id="reviewSub"></p>
+    </div>
+    <div id="reviewBody"></div>
+  </div>
+  <div class="review-bar">
+    <div class="summary" id="reviewSummary"></div>
+    <button class="btn-ghost" onclick="cancelImport()">Start over</button>
+    <button class="btn-primary" id="reviewContinue" onclick="confirmImport()">Continue to my map →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════ STATUS (loading / not found, for shared-link entry) ═══════════════════ -->
+<div id="statusScreen">
+  <div class="s-title" id="statusTitle">Loading map…</div>
+  <div class="s-sub" id="statusSub"></div>
+  <a class="btn-primary" href="/" id="statusCta" style="display:none;">Make your own map</a>
+</div>
+
+<!-- ═══════════════════ APP ═══════════════════ -->
+<div id="app">
+  <header class="app-header">
+    <div class="logo" onclick="location.href='/'" title="Back to start">Pinbook<em>.</em></div>
+    <div id="viewerBadge"></div>
+    <div class="trip-tabs" id="tripTabs"></div>
+    <div class="header-right">
+      <span class="stats" id="stats">Loading…</span>
+      <button class="share-btn" id="shareBtn" onclick="openShare()">↗ Share Map</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <div id="map"></div>
+    <div class="sidebar">
+      <div class="search-wrap">
+        <div class="search-box">
+          <span class="s-ico">⌕</span>
+          <input id="searchInput" type="text" placeholder="Search places, notes…" autocomplete="off">
+        </div>
+      </div>
+      <div class="filters" id="filters"></div>
+      <div class="place-list" id="placeList"></div>
+      <div class="taste-panel">
+        <div class="taste-title">Taste Profile</div>
+        <div id="tasteContent"><div class="taste-empty">Rate places you visited to build your profile.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Share modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeShare(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>Share your map 🗺️</h2>
+    <p>Show people where you've been, what you loved, and the notes you kept — only visited places are shown.</p>
+    <div class="modal-summary" id="modalSummary"></div>
+    <div class="modal-link-row" id="modalLinkRow">
+      <input type="text" id="modalLinkInput" readonly onclick="this.select()">
+    </div>
+    <div class="modal-status" id="modalStatus"></div>
+    <div class="modal-actions" id="modalActions">
+      <button class="modal-btn primary" id="modalPrimaryBtn" onclick="createShareLink()">Create link</button>
+      <button class="modal-btn secondary" onclick="closeShare()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

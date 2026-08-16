@@ -1,0 +1,13 @@
+name = "pinbook"
+pages_build_output_dir = "public"
+compatibility_date = "2026-08-16"
+
+# GEOCODE_CACHE: CID -> resolved place (lat/lng/city/category). Shared across all imports, never expires.
+# MAPS: shareId -> a finished, saved map (trips + places + ratings). This is what a share link loads.
+[[kv_namespaces]]
+binding = "GEOCODE_CACHE"
+id = "7e03711b482f45a28662b36bf8aeecb6"
+
+[[kv_namespaces]]
+binding = "MAPS"
+id = "005f5338f369458da85141183db197eb"
