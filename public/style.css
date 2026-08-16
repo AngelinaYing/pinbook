@@ -24,9 +24,10 @@ body.in-app { height: 100vh; overflow: hidden; }
   color: #e8520a; margin-bottom: 18px;
 }
 .hero-h {
-  font-size: 52px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.05;
-  max-width: 760px;
+  font-size: clamp(30px, 4vw, 44px); font-weight: 800; letter-spacing: -1.5px; line-height: 1.15;
+  max-width: 100%;
 }
+.hero-h .line1 { white-space: nowrap; }
 .hero-h .accent { color: #e8520a; }
 .hero-sub {
   font-size: 18px; color: #6b6660; line-height: 1.55; max-width: 620px;
@@ -326,3 +327,56 @@ header.app-header .logo { cursor: pointer; }
 #statusScreen.show { display: flex; }
 #statusScreen .s-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
 #statusScreen .s-sub { font-size: 14px; color: #79736c; max-width: 380px; line-height: 1.5; margin-bottom: 20px; }
+
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width: 760px) {
+  /* landing */
+  .l-nav { padding: 14px 20px; }
+  .hero { padding: 28px 20px 28px; }
+  .hero-h .line1 { white-space: normal; }
+  .hero-sub { font-size: 16px; max-width: 100%; }
+  .hero-cta { flex-wrap: wrap; gap: 12px; }
+  .hero-cta .btn-primary, .hero-cta .btn-ghost { flex: 1 1 auto; text-align: center; }
+
+  .how { padding: 24px 20px 10px; }
+  .how-steps { grid-template-columns: 1fr; gap: 14px; }
+
+  .export { padding: 28px 20px 10px; }
+  .export-grid { grid-template-columns: 1fr; gap: 30px; }
+
+  .foot { padding: 24px 20px 40px; }
+
+  /* review screen */
+  .review-wrap { padding: 24px 20px 130px; }
+  .review-bar { flex-wrap: wrap; padding: 10px 16px; gap: 8px; }
+  .review-bar .summary { flex-basis: 100%; order: 1; font-size: 12.5px; }
+  .review-bar .btn-ghost, .review-bar .btn-primary { flex: 1; margin-left: 0; order: 2; padding: 11px; }
+
+  /* share modal */
+  .modal { width: calc(100vw - 32px); padding: 22px; }
+
+  /* app: stack map above the place list instead of side-by-side */
+  header.app-header { flex-wrap: wrap; height: auto; padding: 8px 12px; row-gap: 6px; }
+  header.app-header .logo { order: 1; font-size: 17px; }
+  #viewerBadge { order: 2; }
+  #viewerBadge:empty { display: none; }
+  .header-right { order: 3; margin-left: auto; gap: 10px; }
+  .stats { display: none; }
+  .trip-tabs { order: 4; flex-basis: 100%; overflow-x: auto; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
+  .trip-tabs::-webkit-scrollbar { display: none; }
+
+  .main { flex-direction: column; }
+  #map { flex: none; height: 36vh; }
+  .sidebar { width: 100%; flex: 1; border-left: none; border-top: 1px solid #ebe8e2; min-height: 0; overflow-y: auto; }
+  .search-wrap, .filters { flex-shrink: 0; }
+  .place-list { flex: none; overflow: visible; min-height: 160px; }
+  .taste-panel { flex-shrink: 0; }
+}
+
+@media (max-width: 420px) {
+  .hero-h { letter-spacing: -0.8px; }
+  .how-card { padding: 18px 18px 20px; }
+}
+

@@ -16,9 +16,6 @@ const CATS = {
   neighborhood: { icon: '🏘️', label: 'Area',      color: '#a78bfa' },
 };
 const PLACES_DEMO = [
-  { id:1,  trip:'colombia2024', name:'Fossetta',                    cat:'food',         lat:40.7282, lng:-73.9942, note:'NYC (pre-trip research)' },
-  { id:2,  trip:'colombia2024', name:'Sarajevo Grill',              cat:'food',         lat:40.7580, lng:-73.9957, note:'NYC (pre-trip research)' },
-  { id:3,  trip:'colombia2024', name:'Jongro BBQ',                  cat:'food',         lat:40.7503, lng:-73.9895, note:'NYC (pre-trip research)' },
   { id:4,  trip:'colombia2024', name:'Ábaco Libros y Café',         cat:'food',         lat:10.4238, lng:-75.5471, note:'' },
   { id:5,  trip:'colombia2024', name:'Torre Fuerte',                cat:'culture',      lat:10.4267, lng:-75.5416, note:'' },
   { id:6,  trip:'colombia2024', name:'Soloio Cafe',                 cat:'food',         lat:10.4228, lng:-75.5478, note:'' },
@@ -86,6 +83,40 @@ const PLACES_DEMO = [
   { id:68, trip:'yosemite2023', name:'Bridalveil Fall',             cat:'nature',       lat:37.7165, lng:-119.6516, note:'Drive-up viewpoint' },
   { id:69, trip:'yosemite2023', name:'Tunnel View',                 cat:'nature',       lat:37.7186, lng:-119.6785, note:'Driveable' },
 ];
+
+// Pre-seeded visited/rating/comment for the demo, so it opens looking like a lived-in trip
+// journal instead of an empty imported list. Places not listed here stay unrated and clickable.
+const DEMO_RATINGS = {
+  4:  { visited: 'went', rating: 4, comment: 'Bookstore-café in the old town — good coffee, better people-watching.' },
+  7:  { visited: 'went', rating: 5, comment: 'Slept in a hammock on the beach — the sound of the waves all night. Worth the hike in.' },
+  9:  { visited: 'went', rating: 4, comment: 'Waist-deep in volcanic mud with strangers massaging your shoulders. Weird. Delightful. Do it.' },
+  12: { visited: 'went', rating: 4, comment: 'Boat day out from Cartagena — clear water, mediocre lunch, worth it for the swim.' },
+  13: { visited: 'went', rating: 5, comment: '4 days, no phone signal, the ruins at the end make every blister worth it.' },
+  14: { visited: 'went', rating: 5, comment: 'Emerged from the jungle to 1,200 stone terraces built centuries before Machu Picchu. Unreal.' },
+  20: { visited: 'went', rating: 4, comment: 'Live salsa till 2am, the dance floor packed the second the band started.' },
+  21: { visited: 'went', rating: 3, comment: "Fine mall, mostly went for the food court Catalina swore by." },
+  22: { visited: 'went', rating: 5, comment: 'Driver-recommended salsa spot 💃 — best night of the trip, hands down.' },
+  29: { visited: 'went', rating: 4, comment: 'The mondongo (tripe soup) is a whole event. Came hungry, left stuffed.' },
+  30: { visited: 'went', rating: 4, comment: 'Street-food stall recommendation that turned into the best $4 I spent all trip.' },
+  32: { visited: 'went', rating: 5, comment: 'Tasting menu that made me reconsider what Colombian food even is.' },
+  34: { visited: 'went', rating: 5, comment: 'Bella strongly recommends ⭐ — she was right. Best meal of the whole trip.' },
+  35: { visited: 'went', rating: 4, comment: "Chunky bronze cats and horses everywhere — Botero's sense of humor in public art form." },
+  36: { visited: 'went', rating: 5, comment: "Used to be one of Medellín's most dangerous barrios — now has outdoor escalators and a park. Wild turnaround." },
+  48: { visited: 'went', rating: 4, comment: 'Wandered onto campus on a whim — beautiful buildings, steep walk back down.' },
+  51: { visited: 'skipped', rating: 0, comment: '⚠️ Everyone told us to skip this one — glad we listened.' },
+  53: { visited: 'went', rating: 5, comment: "Bogotá's best artisan market — bought way more than I planned to carry home." },
+  55: { visited: 'went', rating: 5, comment: 'Sunset from the top of Bogotá — bought tickets a day early, glad we did, the line was long.' },
+  57: { visited: 'went', rating: 4, comment: 'Clean, social, good breakfast — solid home base for Bogotá.' },
+  58: { visited: 'went', rating: 4, comment: 'Rooftop bar made this the easiest hostel to make friends at.' },
+  59: { visited: 'went', rating: 5, comment: "One of South America's biggest clubs — multiple rooms, multiple genres, we didn't leave till sunrise." },
+  60: { visited: 'went', rating: 5, comment: 'Round trip 6h — legs were done, the view was not overrated.' },
+  62: { visited: 'went', rating: 4, comment: 'Quiet cabin outside the park, 20 min to the entrance — worth the tradeoff for the price.' },
+  63: { visited: 'went', rating: 5, comment: 'Face to face with Half Dome at golden hour. Drive up, no hike required — almost feels like cheating.' },
+  65: { visited: 'went', rating: 4, comment: "Pull-off on the way out of the valley — great for sunset, easy to miss if you're not looking." },
+  66: { visited: 'went', rating: 4, comment: 'Watched a tiny dot of a climber inch up the face through binoculars for way too long.' },
+  68: { visited: 'went', rating: 3, comment: "Short walk from the parking lot — nice, but skip if you've already seen the bigger falls." },
+  69: { visited: 'went', rating: 5, comment: "The classic postcard shot of the valley. Pull over, it's worth the two minutes." },
+};
 
 // ══════════════════ LIVE STATE (populated by the demo, an import, or a shared link) ══════════════════
 let TRIPS = {};
@@ -375,7 +406,11 @@ function enterDemo() {
   TRIPS = JSON.parse(JSON.stringify(TRIPS_DEMO));
   places = PLACES_DEMO.map(p => ({ ...p }));
   ratings = {};
-  places.forEach(p => { ratings[p.id] = { visited: null, rating: 0, comment: p.note || '' }; });
+  places.forEach(p => {
+    ratings[p.id] = DEMO_RATINGS[p.id]
+      ? { ...DEMO_RATINGS[p.id] }
+      : { visited: null, rating: 0, comment: p.note || '' };
+  });
   state.viewer = false; state.trip = 'all'; state.cat = 'all'; state.query = ''; state.activeId = null;
   showApp();
 }
