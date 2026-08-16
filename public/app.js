@@ -1,8 +1,7 @@
 // ══════════════════ DEMO DATA (used by "See the demo" — untouched from the original prototype) ══════════════════
 const TRIPS_DEMO = {
-  colombia2024: { label: "Colombia '24", color: '#e8520a', emoji: '🇨🇴' },
-  colombia2025: { label: "Colombia '25", color: '#7c3aed', emoji: '🇨🇴' },
-  yosemite2023: { label: "Yosemite '23", color: '#16a34a', emoji: '🏕️' },
+  colombia2025: { label: 'Colombia Trip', color: '#7c3aed', emoji: '🇨🇴' },
+  yosemite2023: { label: 'Yosemite Trip', color: '#16a34a', emoji: '🏕️' },
 };
 const CATS = {
   food:         { icon: '🍽️', label: 'Food',      color: '#e8520a' },
@@ -16,21 +15,6 @@ const CATS = {
   neighborhood: { icon: '🏘️', label: 'Area',      color: '#a78bfa' },
 };
 const PLACES_DEMO = [
-  { id:4,  trip:'colombia2024', name:'Ábaco Libros y Café',         cat:'food',         lat:10.4238, lng:-75.5471, note:'' },
-  { id:5,  trip:'colombia2024', name:'Torre Fuerte',                cat:'culture',      lat:10.4267, lng:-75.5416, note:'' },
-  { id:6,  trip:'colombia2024', name:'Soloio Cafe',                 cat:'food',         lat:10.4228, lng:-75.5478, note:'' },
-  { id:7,  trip:'colombia2024', name:'Cabo San Juan del Guia',      cat:'nature',       lat:11.3244, lng:-74.0294, note:'' },
-  { id:8,  trip:'colombia2024', name:'Tayrona Park Entrance',       cat:'nature',       lat:11.3070, lng:-74.0369, note:'' },
-  { id:9,  trip:'colombia2024', name:'El Totumo',                   cat:'nature',       lat:10.7043, lng:-75.2584, note:'Volcanic mud bath' },
-  { id:10, trip:'colombia2024', name:'Gaelia Beach',                cat:'nature',       lat:10.3800, lng:-75.5100, note:'' },
-  { id:11, trip:'colombia2024', name:'Cartagena Airport (CTG)',     cat:'transport',    lat:10.4424, lng:-75.5132, note:'' },
-  { id:12, trip:'colombia2024', name:'Rosario Islands',             cat:'nature',       lat:10.1628, lng:-75.7731, note:'' },
-  { id:13, trip:'colombia2024', name:'Ciudad Perdida Trek',         cat:'activity',     lat:11.0407, lng:-73.9252, note:'' },
-  { id:14, trip:'colombia2024', name:'Ciudad Perdida',              cat:'culture',      lat:11.0350, lng:-73.9220, note:'Lost City — ancient ruins' },
-  { id:15, trip:'colombia2024', name:'Santa Marta',                 cat:'neighborhood', lat:11.2408, lng:-74.2116, note:'' },
-  { id:16, trip:'colombia2024', name:'Parque Nacional Tayrona',     cat:'nature',       lat:11.3070, lng:-74.0100, note:'' },
-  { id:17, trip:'colombia2024', name:'Barranquilla',                cat:'neighborhood', lat:10.9685, lng:-74.7813, note:'' },
-  { id:18, trip:'colombia2024', name:'Cartagena',                   cat:'neighborhood', lat:10.3910, lng:-75.4794, note:'' },
   { id:19, trip:'colombia2025', name:'Bogota Bike Tours',           cat:'activity',     lat:4.6097,  lng:-74.0817, note:'' },
   { id:20, trip:'colombia2025', name:'4.40 Music Hall',             cat:'nightlife',    lat:4.6480,  lng:-74.0540, note:'' },
   { id:21, trip:'colombia2025', name:'Andino Shopping Mall',        cat:'market',       lat:4.6658,  lng:-74.0528, note:"Catalina's recommendation" },
@@ -87,12 +71,6 @@ const PLACES_DEMO = [
 // Pre-seeded visited/rating/comment for the demo, so it opens looking like a lived-in trip
 // journal instead of an empty imported list. Places not listed here stay unrated and clickable.
 const DEMO_RATINGS = {
-  4:  { visited: 'went', rating: 4, comment: 'Bookstore-café in the old town — good coffee, better people-watching.' },
-  7:  { visited: 'went', rating: 5, comment: 'Slept in a hammock on the beach — the sound of the waves all night. Worth the hike in.' },
-  9:  { visited: 'went', rating: 4, comment: 'Waist-deep in volcanic mud with strangers massaging your shoulders. Weird. Delightful. Do it.' },
-  12: { visited: 'went', rating: 4, comment: 'Boat day out from Cartagena — clear water, mediocre lunch, worth it for the swim.' },
-  13: { visited: 'went', rating: 5, comment: '4 days, no phone signal, the ruins at the end make every blister worth it.' },
-  14: { visited: 'went', rating: 5, comment: 'Emerged from the jungle to 1,200 stone terraces built centuries before Machu Picchu. Unreal.' },
   20: { visited: 'went', rating: 4, comment: 'Live salsa till 2am, the dance floor packed the second the band started.' },
   21: { visited: 'went', rating: 3, comment: "Fine mall, mostly went for the food court Catalina swore by." },
   22: { visited: 'went', rating: 5, comment: 'Driver-recommended salsa spot 💃 — best night of the trip, hands down.' },
@@ -122,6 +100,7 @@ const DEMO_RATINGS = {
 let TRIPS = {};
 let places = [];
 let ratings = {};
+let isDemo = false;
 const state = { trip: 'all', cat: 'all', query: '', activeId: null, viewer: false };
 
 function escapeHtml(s){ return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -395,11 +374,20 @@ function showApp() {
   document.body.classList.toggle('viewer-mode', state.viewer);
   document.getElementById('shareBtn').style.display = state.viewer ? 'none' : '';
   document.getElementById('viewerBadge').innerHTML = state.viewer
-    ? `<div class="viewer-badge">👀 Shared map · <a href="/">Make your own</a></div>` : '';
+    ? `<div class="viewer-badge">👀 Shared map · <a href="/">Make your own</a></div>`
+    : (isDemo ? `<a class="demo-cta" href="#get-started" onclick="goToUpload();return false;">✦ Map my own trip</a>` : '');
 
   if (!mapInited) { initMap(); mapInited = true; } else { rebuildMarkers(); }
   renderTripTabs();
   setTimeout(() => { map.invalidateSize(); fitTrip(state.trip); render(); }, 60);
+}
+
+function goToUpload() {
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('landing').classList.remove('hide');
+  document.body.classList.remove('in-app');
+  document.body.classList.remove('viewer-mode');
+  document.getElementById('get-started').scrollIntoView({ behavior: 'smooth' });
 }
 
 function enterDemo() {
@@ -411,6 +399,7 @@ function enterDemo() {
       ? { ...DEMO_RATINGS[p.id] }
       : { visited: null, rating: 0, comment: p.note || '' };
   });
+  isDemo = true;
   state.viewer = false; state.trip = 'all'; state.cat = 'all'; state.query = ''; state.activeId = null;
   showApp();
 }
@@ -727,6 +716,7 @@ function confirmImport() {
     ratings[p.id] = { visited: draftGo[p.id] ? 'went' : 'skipped', rating: 0, comment: p.note || '' };
   });
 
+  isDemo = false;
   state.viewer = false; state.cat = 'all'; state.query = ''; state.activeId = null;
   state.trip = Object.keys(TRIPS).length === 1 ? trip : 'all';
   document.getElementById('searchInput').value = '';
@@ -749,6 +739,7 @@ function loadViewerData(data) {
   ratings = {};
   places.forEach(p => { ratings[p.id] = { visited: p.visited, rating: p.rating || 0, comment: p.comment || '' }; });
   const tripKeys = Object.keys(TRIPS);
+  isDemo = false;
   state.viewer = true; state.cat = 'all'; state.query = ''; state.activeId = null;
   state.trip = tripKeys.length === 1 ? tripKeys[0] : 'all';
   showApp();
