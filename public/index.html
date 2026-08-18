@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pinbook — turn your Google Maps trip pins into a personal map</title>
+  <title>Pinbook — the trip blog built from the places you already saved</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -18,15 +18,84 @@
     <button class="l-nav-cta" onclick="enterDemo()">See the demo</button>
   </nav>
 
-  <header class="hero">
-    <div class="hero-eyebrow">For travelers who plan in Google Maps</div>
-    <h1 class="hero-h"><span class="line1">You marked the spots in Google Maps.</span><br><span class="accent">Pinbook blogs it for your friends.</span></h1>
-    <p class="hero-sub">Turn your saved pins into a travel blog — track where you actually went, then share the recommendations worth passing on.</p>
-    <div class="hero-cta">
-      <button class="btn-primary" onclick="enterDemo()">See the demo →</button>
-      <a class="btn-ghost" href="#get-started">Map your own trip</a>
+  <div class="hero-stage">
+    <div class="hero-visual" aria-hidden="true">
+      <svg class="hero-map" viewBox="0 0 1600 600" preserveAspectRatio="none">
+        <defs>
+          <pattern id="mapGrid" width="46" height="46" patternUnits="userSpaceOnUse">
+            <path d="M46,0 L0,0 0,46" fill="none" stroke="#c9bfae" stroke-width="1"/>
+          </pattern>
+          <marker id="routeArrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#e8520a" fill-opacity=".55"/>
+          </marker>
+        </defs>
+
+        <g class="map-grid">
+          <rect width="1600" height="600" fill="url(#mapGrid)"/>
+        </g>
+        <g class="map-blobs">
+          <path class="map-blob" d="M1400,60 C1480,20 1560,50 1560,110 C1560,170 1480,190 1420,160 C1360,130 1340,100 1400,60 Z"/>
+          <path class="map-blob" d="M900,370 C980,340 1080,360 1090,420 C1100,480 1010,510 940,490 C870,470 840,410 900,370 Z"/>
+          <path class="map-blob" d="M180,480 C240,450 340,460 350,520 C360,580 260,600 200,580 C150,562 130,510 180,480 Z"/>
+        </g>
+
+        <path class="route-seg" d="M1470,80 C1400,110 1380,140 1440,180" marker-end="url(#routeArrow)"/>
+        <path class="route-seg" d="M1420,255 C1360,300 1300,320 1250,370" marker-end="url(#routeArrow)"/>
+        <path class="route-seg" d="M1180,435 C1020,460 900,440 820,485" marker-end="url(#routeArrow)"/>
+        <path class="route-seg" d="M710,520 C550,560 400,530 260,516" marker-end="url(#routeArrow)"/>
+      </svg>
+
+      <div class="pin" style="left:93.7%; top:6.7%;">
+        <span class="pin-photo"><svg viewBox="0 0 40 40"><rect width="40" height="40" rx="8" fill="#fde3df"/><rect x="6" y="14" width="28" height="18" rx="3" fill="#4a4a4a"/><rect x="15" y="9" width="10" height="6" rx="2" fill="#4a4a4a"/><circle cx="20" cy="23" r="6.5" fill="#8fb8d9"/><circle cx="20" cy="23" r="3.5" fill="#2c3e50"/></svg></span>
+      </div>
+      <div class="pin-tag" style="left:93.7%; top:6.7%; transform:translate(-88%, var(--tag-dy));">
+        <span class="pin-stars"><span class="filled">★★★★★</span></span>
+        <span class="pin-comment">unforgettable</span>
+      </div>
+
+      <div class="pin" style="left:89.4%; top:36.7%;">
+        <span class="pin-photo"><svg viewBox="0 0 40 40"><rect width="40" height="40" rx="8" fill="#dceaf5"/><circle cx="29" cy="11" r="4" fill="#f5c344"/><path d="M2,32 L14,14 L21,24 L27,16 L38,32 Z" fill="#6b8f6a"/><path d="M14,14 L18,20 L10,20 Z" fill="#ffffff" opacity=".7"/></svg></span>
+      </div>
+      <div class="pin-tag" style="left:89.4%; top:36.7%; transform:translate(-82%, var(--tag-dy));">
+        <span class="pin-stars"><span class="filled">★★★★</span><span class="empty">☆</span></span>
+        <span class="pin-comment">epic views</span>
+      </div>
+
+      <div class="pin" style="left:76.3%; top:66.7%;">
+        <span class="pin-photo"><svg viewBox="0 0 40 40"><rect width="40" height="40" rx="8" fill="#fbe8d6"/><circle cx="20" cy="22" r="13" fill="#ffffff"/><circle cx="20" cy="22" r="9" fill="#e8a24a"/><circle cx="16" cy="19" r="2" fill="#c0392b"/><circle cx="24" cy="24" r="2" fill="#6b8f4e"/><circle cx="21" cy="17" r="1.6" fill="#c0392b"/></svg></span>
+      </div>
+      <div class="pin-tag" style="left:76.3%; top:66.7%; transform:translate(-62%, var(--tag-dy));">
+        <span class="pin-stars"><span class="filled">★★★★★</span></span>
+        <span class="pin-comment">hidden gem</span>
+      </div>
+
+      <div class="pin" style="left:47.5%; top:83.3%;">
+        <span class="pin-photo"><svg viewBox="0 0 40 40"><rect width="40" height="40" rx="8" fill="#efe6f5"/><rect x="6" y="20" width="28" height="10" rx="2" fill="#9b7fb8"/><rect x="6" y="14" width="28" height="8" rx="3" fill="#ffffff"/><rect x="8" y="15" width="8" height="5" rx="2" fill="#dcd2ea"/><rect x="4" y="20" width="4" height="12" rx="1.5" fill="#6f5590"/></svg></span>
+      </div>
+      <div class="pin-tag" style="left:47.5%; top:83.3%; transform:translate(-50%, var(--tag-dy));">
+        <span class="pin-stars"><span class="filled">★★★</span><span class="empty">☆☆</span></span>
+        <span class="pin-comment">just okay</span>
+      </div>
+
+      <div class="pin" style="left:12.5%; top:86%;">
+        <span class="pin-photo"><svg viewBox="0 0 40 40"><rect width="40" height="40" rx="8" fill="#d7f0ef"/><circle cx="10" cy="11" r="4.5" fill="#f5c344"/><path d="M2,24 Q10,18 18,24 T34,24" stroke="#3fa9a3" stroke-width="2.5" fill="none"/><path d="M2,31 Q10,25 18,31 T34,31" stroke="#7fc9c4" stroke-width="2.5" fill="none"/></svg></span>
+      </div>
+      <div class="pin-tag" style="left:12.5%; top:86%; transform:translate(-18%, var(--tag-dy));">
+        <span class="pin-stars"><span class="filled">★★★★</span><span class="empty">☆</span></span>
+        <span class="pin-comment">underrated</span>
+      </div>
     </div>
-  </header>
+
+    <header class="hero">
+      <div class="hero-eyebrow">Your saved pins, turned into the journal you'll actually reread</div>
+      <h1 class="hero-h"><span class="line1">The trip blog you never got around to writing —</span><br><span class="accent">built from the pins you already dropped.</span></h1>
+      <p class="hero-sub">You bookmarked the spots while planning. Pinbook turns them into a real travel journal — mark what you visited, rate it, keep the notes — before the memory fades. Then share with your friends who ask you for recs.</p>
+      <div class="hero-cta">
+        <button class="btn-primary" onclick="enterDemo()">See the demo →</button>
+        <a class="btn-ghost" href="#get-started">Map your own trip</a>
+      </div>
+    </header>
+  </div>
 
   <section class="how">
     <div class="band-label">How it works</div>

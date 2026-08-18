@@ -49,6 +49,41 @@ body.in-app { height: 100vh; overflow: hidden; }
 .btn-ghost:hover { border-color: #999; }
 .hero-note { font-size: 13px; color: #a8a29a; margin-top: 16px; }
 
+.hero-stage { position: relative; overflow: hidden; min-height: 740px; }
+.hero-visual { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.hero-map { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hero-map .map-grid { opacity: .16; }
+.hero-map .map-blobs { opacity: .4; }
+.hero-map .map-blob { fill: #e7ddc9; }
+.hero-map .route-seg {
+  fill: none; stroke: #e8520a; stroke-opacity: .4; stroke-width: 2.5;
+  stroke-linecap: round; stroke-dasharray: 2 9;
+}
+.pin {
+  position: absolute; width: 54px; height: 54px;
+  background: #fff; border: 1.5px solid #ece8e2; border-radius: 50% 50% 50% 0;
+  box-shadow: 0 8px 18px rgba(26,26,26,.12);
+  display: flex; align-items: center; justify-content: center;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+.pin-photo { transform: rotate(45deg); display: flex; }
+.pin-photo svg { width: 36px; height: 36px; border-radius: 7px; display: block; }
+
+.pin-tag {
+  position: absolute; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  --tag-dy: 46px;
+}
+.pin-stars { font-size: 11px; letter-spacing: 1px; }
+.pin-stars .filled { color: #e8520a; }
+.pin-stars .empty { color: #d8d2c8; }
+.pin-comment {
+  font-size: 11px; font-weight: 700; color: #6b6660; font-style: italic;
+  background: #fff; padding: 2px 9px; border-radius: 10px; border: 1px solid #ece8e2;
+  white-space: nowrap; box-shadow: 0 2px 6px rgba(26,26,26,.06);
+}
+
+.hero { position: relative; z-index: 1; }
+
 /* how it works */
 .how { max-width: 1080px; margin: 0 auto; padding: 30px 40px 20px; }
 .band-label {
@@ -346,6 +381,12 @@ header.app-header .logo { cursor: pointer; }
   .hero-sub { font-size: 16px; max-width: 100%; }
   .hero-cta { flex-wrap: wrap; gap: 12px; }
   .hero-cta .btn-primary, .hero-cta .btn-ghost { flex: 1 1 auto; text-align: center; }
+  .hero-stage { min-height: 540px; }
+  .pin { width: 40px; height: 40px; }
+  .pin-photo svg { width: 26px; height: 26px; }
+  .pin-tag { --tag-dy: 32px; }
+  .pin-stars { font-size: 9px; }
+  .pin-comment { font-size: 9px; padding: 1px 7px; }
 
   .how { padding: 24px 20px 10px; }
   .how-steps { grid-template-columns: 1fr; gap: 14px; }
